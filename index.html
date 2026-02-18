@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PACE PRO · atleta de elite</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Controlador de pace profissional com GPS, metrônomo e modos de treino avançados">
+  <meta name="theme-color" content="#22c55e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PACE PRO">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%231e293b'/%3E%3Cstop offset='100%25' style='stop-color:%230b1120'/%3E%3C/linearGradient%3E%3ClinearGradient id='icon' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2322c55e'/%3E%3Cstop offset='100%25' style='stop-color:%2316a34a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23bg)'/%3E%3Cpath d='M90 35 L115 75 L90 115 L65 75 Z' fill='url(%23icon)' opacity='0.9'/%3E%3Ccircle cx='90' cy='75' r='8' fill='%23ffffff'/%3E%3Ctext x='90' y='155' font-family='Arial,sans-serif' font-size='22' font-weight='bold' fill='%2322c55e' text-anchor='middle'%3EPACE%3C/text%3E%3C/svg%3E">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2322c55e'/%3E%3Cpath d='M16 8 L20 16 L16 24 L12 16 Z' fill='white'/%3E%3C/svg%3E">
+  <style>
+    /* reset e fundo dinâmico – ocupa TUDO como app nativo */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top left, #1e293b, #0b1120);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f0f4fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: pan-y;
+      overflow: hidden;
+    }
+
+    /* card responsivo que se adapta sem sobras */
+    .card {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 820px;
+      background: rgba(18, 25, 40, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 32px;
+      box-shadow: 0 25px 50px -8px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(74, 144, 226, 0.15);
+    }
+
+    @media (max-height: 700px) {
+      .card { padding: 16px 18px; }
+    }
+
+    h2 {
+      font-weight: 700;
+      font-size: 1.9rem;
+      letter-spacing: -0.5px;
+      text-align: center;
+      margin: 4px 0 8px 0;
+      background: linear-gradient(130deg, #d9ffd9, #a0e9ff, #ffd9f5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+
+    /* status badge */
+    .status-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #22c55e;
+      color: #031401;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-badge.inactive {
+      background: #64748b;
+      color: #f1f5f9;
+      box-shadow: none;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* seletor de modo elegante */
+    .mode {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 22px;
+      background: #1e2a3a;
+      padding: 6px;
+      border-radius: 48px;
+      position: relative;
+    }
+    .mode button {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 10px 4px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #9aa9bb;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      position: relative;
+      z-index: 2;
+    }
+    .mode button.active {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #031401;
+      box-shadow: 0 4px 12px rgba(34,197,94,0.5);
+      transform: scale(1.05);
+    }
+
+    /* blocos de métrica */
+    .row {
+      margin-bottom: 18px;
+      background: rgba(10, 20, 30, 0.7);
+      border-radius: 28px;
+      padding: 12px 18px;
+      border: 1px solid rgba(255,255,255,0.04);
+      box-shadow: inset 0 2px 3px rgba(0,0,0,0.5);
+      transition: all 0.2s ease;
+    }
+    .row:hover {
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+    .row label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .value {
+      font-size: 2.1rem;
+      font-weight: 700;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+      color: #f8ffed;
+      text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+
+    input[type=range] {
+      width: 100%;
+      margin-top: 8px;
+      height: 10px;
+      background: linear-gradient(90deg, #1e3a5f, #22c55e);
+      border-radius: 20px;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #ffffff, #e0e0e0);
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+      border: 3px solid #22c55e;
+      cursor: grab;
+      transition: all 0.2s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.1);
+    }
+
+    /* painel de métricas compacto */
+    .metric-row-compact {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .metric-block {
+      flex: 1;
+      background: linear-gradient(135deg, #162232, #0f1a28);
+      border-radius: 24px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 1px solid #2d3b4f;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+    .metric-block:hover::before {
+      left: 100%;
+    }
+    .metric-label {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      margin-bottom: 4px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .metric-number {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-number.alert {
+      color: #ef4444;
+      animation: alertPulse 1s ease-in-out infinite;
+    }
+    .metric-number.good {
+      color: #22c55e;
+    }
+
+    @keyframes alertPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* target zone visual */
+    .target-zone {
+      margin: 12px 0;
+      padding: 14px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 2px dashed #22c55e;
+      border-radius: 20px;
+      text-align: center;
+      display: none;
+    }
+    .target-zone.active {
+      display: block;
+    }
+    .target-zone .zone-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .target-zone .zone-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #22c55e;
+    }
+    .target-zone .zone-diff {
+      font-size: 0.9rem;
+      margin-top: 4px;
+      color: #cbd5e1;
+    }
+
+    /* interval timer */
+    .interval-timer {
+      display: none;
+      margin: 12px 0;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(34, 197, 94, 0.15));
+      border-radius: 24px;
+      text-align: center;
+    }
+    .interval-timer.active {
+      display: block;
+    }
+    .interval-phase {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .interval-time {
+      font-size: 2.5rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .interval-time.work {
+      color: #ef4444;
+    }
+    .interval-time.rest {
+      color: #22c55e;
+    }
+    .interval-count {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      margin-top: 6px;
+    }
+
+    /* botões primários e secundários */
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0 8px;
+    }
+    button {
+      flex: 1;
+      padding: 16px 6px;
+      border: none;
+      border-radius: 44px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      background: #26364a;
+      color: #e1eaf1;
+      box-shadow: 0 6px 0 #0f172a;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      touch-action: manipulation;
+      border: 1px solid #3f5068;
+      position: relative;
+      overflow: hidden;
+    }
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    button:active::before {
+      width: 300px;
+      height: 300px;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #031401;
+      box-shadow: 0 6px 0 #0f4f2a, 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+    button.secondary {
+      background: #334155;
+      box-shadow: 0 5px 0 #1e293b;
+    }
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #0f172a;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* log de laps com rolagem */
+    .split {
+      background: #0c121e;
+      border-radius: 24px;
+      padding: 14px 12px;
+      max-height: 110px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      border: 1px solid #2c3f5c;
+      margin: 12px 0 8px;
+      scrollbar-width: thin;
+      scrollbar-color: #22c55e #1e2a3a;
+    }
+    .split::-webkit-scrollbar {
+      width: 6px;
+    }
+    .split::-webkit-scrollbar-track {
+      background: #1e2a3a;
+      border-radius: 10px;
+    }
+    .split::-webkit-scrollbar-thumb {
+      background: #22c55e;
+      border-radius: 10px;
+    }
+    .split div {
+      border-bottom: 1px dashed #2d405b;
+      padding: 6px 0;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .split div:last-child {
+      border-bottom: none;
+    }
+    .split .lap-number {
+      color: #22c55e;
+      font-weight: 700;
+    }
+    .split .lap-pace {
+      color: #cbd5e1;
+    }
+    .split .lap-pace.fast {
+      color: #22c55e;
+    }
+    .split .lap-pace.slow {
+      color: #ef4444;
+    }
+
+    .small {
+      font-size: 0.75rem;
+      text-align: center;
+      color: #7f8ea3;
+      margin-top: 8px;
+    }
+
+    /* tudo flexível para ocupar sem scroll */
+    .card {
+      justify-content: space-between;
+    }
+    .content-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* notificação toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: rgba(34, 197, 94, 0.95);
+      color: #031401;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .toast.error {
+      background: rgba(239, 68, 68, 0.95);
+      color: #fff;
+    }
+
+    /* accessibility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <span class="status-badge inactive" id="statusBadge">INATIVO</span>
+  <h2>⚡ PACE PRO</h2>
+
+  <!-- modos -->
+  <div class="mode">
+    <button id="modeFree" class="active" aria-label="Modo livre">Livre</button>
+    <button id="modeTarget" aria-label="Modo meta">Meta</button>
+    <button id="modeInterval" aria-label="Modo intervalo">Intervalo</button>
+  </div>
+
+  <!-- área central flexível -->
+  <div class="content-main">
+    <!-- pace slider -->
+    <div class="row">
+      <label for="paceSlider">PACER (min/km)</label>
+      <div class="value" id="paceDisplay" aria-live="polite">5:00</div>
+      <input id="paceSlider" type="range" min="3" max="10" step="0.01" value="5" 
+             aria-label="Ajustar pace em minutos por quilômetro">
+    </div>
+
+    <!-- speed slider -->
+    <div class="row">
+      <label for="speedSlider">VELOCIDADE (km/h)</label>
+      <div class="value" id="speedDisplay" aria-live="polite">12.0 km/h</div>
+      <input id="speedSlider" type="range" min="6" max="20" step="0.1" value="12"
+             aria-label="Ajustar velocidade em quilômetros por hora">
+    </div>
+
+    <!-- target zone (só aparece no modo Meta) -->
+    <div class="target-zone" id="targetZone">
+      <div class="zone-label">Zona Alvo</div>
+      <div class="zone-value" id="targetValue">±10s</div>
+      <div class="zone-diff" id="targetDiff">Ajuste seu pace</div>
+    </div>
+
+    <!-- interval timer (só aparece no modo Intervalo) -->
+    <div class="interval-timer" id="intervalTimer">
+      <div class="interval-phase" id="intervalPhase">TRABALHO</div>
+      <div class="interval-time work" id="intervalTime">2:00</div>
+      <div class="interval-count" id="intervalCount">Repetição 1/8</div>
+    </div>
+
+    <!-- bpm + gps pace lado a lado -->
+    <div class="metric-row-compact">
+      <div class="metric-block">
+        <div class="metric-label">❤️ BPM (estimado)</div>
+        <div class="metric-number" id="bpmDisplay" aria-live="polite">180</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">📍 Pace GPS</div>
+        <div class="metric-number" id="gpsPaceDisplay" aria-live="polite">--:--</div>
+      </div>
+    </div>
+
+    <!-- distância acumulada -->
+    <div class="row" style="padding: 10px 16px;">
+      <label>DISTÂNCIA GPS</label>
+      <div class="value" id="distDisplay" aria-live="polite">0.00 km</div>
+    </div>
+
+    <!-- controles -->
+    <div class="button-group">
+      <button id="startBtn" class="primary" aria-label="Iniciar treino">▶️ Iniciar</button>
+      <button id="lapBtn" class="secondary" aria-label="Marcar volta">📍 Lap</button>
+    </div>
+    <button id="resetBtn" class="secondary" style="width: 100%;" aria-label="Resetar dados">🔄 Reset</button>
+
+    <!-- log de splits -->
+    <div class="split" id="splitLog" aria-live="polite" aria-label="Registro de voltas"></div>
+  </div>
+
+  <div class="small">🏃‍♂️ Treino inteligente · GPS ativo</div>
+</div>
+
+<!-- notificação toast -->
+<div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+
+<script>
+  (() => {
+    'use strict';
+
+    // ----- elementos DOM -----
+    const paceSlider = document.getElementById('paceSlider');
+    const speedSlider = document.getElementById('speedSlider');
+    const paceDisplay = document.getElementById('paceDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const bpmDisplay = document.getElementById('bpmDisplay');
+    const gpsPaceDisplay = document.getElementById('gpsPaceDisplay');
+    const distDisplay = document.getElementById('distDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const lapBtn = document.getElementById('lapBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const splitLog = document.getElementById('splitLog');
+    const statusBadge = document.getElementById('statusBadge');
+    const modeFree = document.getElementById('modeFree');
+    const modeTarget = document.getElementById('modeTarget');
+    const modeInterval = document.getElementById('modeInterval');
+    const targetZone = document.getElementById('targetZone');
+    const targetValue = document.getElementById('targetValue');
+    const targetDiff = document.getElementById('targetDiff');
+    const intervalTimer = document.getElementById('intervalTimer');
+    const intervalPhase = document.getElementById('intervalPhase');
+    const intervalTime = document.getElementById('intervalTime');
+    const intervalCount = document.getElementById('intervalCount');
+    const toast = document.getElementById('toast');
+
+    // ----- estado global -----
+    let mode = 'free';
+    let running = false;
+    let audioCtx = null;
+    let metronomeTimer = null;
+    let watchId = null;
+    let lastPos = null;
+    let totalDist = 0;
+    let lastLapDist = 0;
+    let lastLapTime = null;
+    let startTime = null;
+    let wakeLock = null;
+    let lapCount = 0;
+
+    // estado do modo target
+    let targetPace = 5.0;
+    let paceHistory = [];
+
+    // estado do modo interval
+    let intervalState = 'work';
+    let intervalStartTime = null;
+    let intervalWorkDuration = 120;
+    let intervalRestDuration = 60;
+    let intervalCurrentRep = 1;
+    let intervalTotalReps = 8;
+    let intervalTimer_id = null;
+
+    // ----- funções de conversão -----
+    const paceToSpeed = (p) => 60 / p;
+    const speedToPace = (s) => 60 / s;
+    const paceToBPM = (p) => {
+      const baseBPM = 180;
+      const basePace = 5;
+      const factor = Math.pow(basePace / p, 1.3);
+      return Math.round(baseBPM * factor);
+    };
+
+    const formatPace = (p) => {
+      if (!isFinite(p) || p <= 0) return '--:--';
+      let m = Math.floor(p);
+      let s = Math.round((p - m) * 60);
+      if (s === 60) { 
+        s = 0; 
+        m = m + 1;
+      }
+      return m + ':' + (s < 10 ? '0' + s : s);
+    };
+
+    const formatTime = (seconds) => {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return m + ':' + (s < 10 ? '0' + s : s);
+    };
+
+    // ----- toast notifications -----
+    function showToast(message, isError = false) {
+      toast.textContent = message;
+      toast.classList.toggle('error', isError);
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // ----- atualização dual-slider -----
+    function updateFromPace() {
+      const p = parseFloat(paceSlider.value);
+      const s = paceToSpeed(p);
+      speedSlider.value = s.toFixed(1);
+      updateDisplays(p, s);
+    }
+
+    function updateFromSpeed() {
+      const s = parseFloat(speedSlider.value);
+      const p = speedToPace(s);
+      paceSlider.value = p.toFixed(2);
+      updateDisplays(p, s);
+    }
+
+    function updateDisplays(p, s) {
+      paceDisplay.textContent = formatPace(p);
+      speedDisplay.textContent = s.toFixed(1) + ' km/h';
+      const bpm = paceToBPM(p);
+      bpmDisplay.textContent = bpm;
+      
+      if (bpm > 180) {
+        bpmDisplay.classList.add('alert');
+        bpmDisplay.classList.remove('good');
+      } else if (bpm >= 140 && bpm <= 170) {
+        bpmDisplay.classList.add('good');
+        bpmDisplay.classList.remove('alert');
+      } else {
+        bpmDisplay.classList.remove('alert', 'good');
+      }
+
+      if (running) restartMetronome();
+      
+      if (mode === 'target') {
+        targetPace = p;
+      }
+    }
+
+    paceSlider.addEventListener('input', updateFromPace);
+    speedSlider.addEventListener('input', updateFromSpeed);
+
+    // ----- metrônomo + vibração -----
+    function beep() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.frequency.value = intervalState === 'work' ? 880 : 660;
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (e) { 
+        console.warn('Audio context error:', e);
+      }
+      
+      if (navigator.vibrate) {
+        const pattern = mode === 'interval' && intervalState === 'rest' ? [20, 10, 20] : [20];
+        navigator.vibrate(pattern);
+      }
+    }
+
+    function startMetronome() {
+      const p = parseFloat(paceSlider.value);
+      const bpm = paceToBPM(p);
+      const intervalMs = 60000 / bpm;
+      if (metronomeTimer) clearInterval(metronomeTimer);
+      metronomeTimer = setInterval(beep, intervalMs);
+      beep();
+    }
+
+    function stopMetronome() {
+      if (metronomeTimer) {
+        clearInterval(metronomeTimer);
+        metronomeTimer = null;
+      }
+    }
+
+    function restartMetronome() {
+      if (!running) return;
+      stopMetronome();
+      startMetronome();
+    }
+
+    // ----- GPS: distância e pace ao vivo -----
+    const haversine = (lat1, lon1, lat2, lon2) => {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    };
+
+    function gpsUpdate(pos) {
+      if (!running) return;
+      const { latitude, longitude, accuracy } = pos.coords;
+      
+      if (accuracy > 50) {
+        console.warn('GPS accuracy too low:', accuracy);
+        return;
+      }
+
+      if (lastPos) {
+        const d = haversine(lastPos.lat, lastPos.lon, latitude, longitude);
+        const minDistance = totalDist > 0 ? 3 : 5;
+        if (d > minDistance && d < 100) {
+          totalDist += d / 1000;
+          distDisplay.textContent = totalDist.toFixed(2) + ' km';
+        }
+      }
+      lastPos = { lat: latitude, lon: longitude };
+
+      if (startTime && totalDist > 0.05) {
+        const elapsedHours = (Date.now() - startTime) / 3600000;
+        const speedKph = totalDist / elapsedHours;
+        
+        if (speedKph > 0.5 && speedKph < 25) {
+          const pace = 60 / speedKph;
+          
+          paceHistory.push(pace);
+          if (paceHistory.length > 5) paceHistory.shift();
+          const avgPace = paceHistory.reduce((a, b) => a + b, 0) / paceHistory.length;
+          
+          gpsPaceDisplay.textContent = formatPace(avgPace);
+          
+          if (mode === 'target') {
+            updateTargetComparison(avgPace);
+          }
+        } else {
+          gpsPaceDisplay.textContent = '--:--';
+        }
+      } else {
+        gpsPaceDisplay.textContent = '--:--';
+      }
+    }
+
+    function startGPS() {
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(
+          gpsUpdate, 
+          (err) => {
+            console.error('GPS error:', err.message);
+            showToast('Erro GPS: ' + err.message, true);
+          }, 
+          { 
+            enableHighAccuracy: true, 
+            maximumAge: 500,
+            timeout: 8000 
+          }
+        );
+      } else {
+        showToast('GPS não disponível', true);
+      }
+    }
+
+    function stopGPS() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    }
+
+    // ----- wake lock -----
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake Lock released');
+          });
+        }
+      } catch (e) {
+        console.warn('Wake Lock error:', e);
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (wakeLock) {
+        try { 
+          await wakeLock.release(); 
+        } catch(e) {
+          console.warn('Wake Lock release error:', e);
+        }
+        wakeLock = null;
+      }
+    }
+
+    // ----- síntese de voz -----
+    function speak(text, priority = false) {
+      try {
+        if (priority) {
+          speechSynthesis.cancel();
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Speech synthesis error:', e);
+      }
+    }
+
+    // ----- MODO TARGET -----
+    function updateTargetComparison(currentPace) {
+      const diff = currentPace - targetPace;
+      const diffSeconds = Math.round(diff * 60);
+      
+      if (Math.abs(diffSeconds) <= 5) {
+        targetValue.textContent = '✓ Na zona!';
+        targetValue.style.color = '#22c55e';
+        targetDiff.textContent = 'Mantenha o ritmo';
+      } else if (diffSeconds > 0) {
+        targetValue.textContent = `+${diffSeconds}s`;
+        targetValue.style.color = '#ef4444';
+        targetDiff.textContent = 'Acelere um pouco';
+        
+        if (diffSeconds > 15) {
+          speak('ritmo muito lento', true);
+        }
+      } else {
+        targetValue.textContent = `${diffSeconds}s`;
+        targetValue.style.color = '#3b82f6';
+        targetDiff.textContent = 'Pode desacelerar';
+        
+        if (diffSeconds < -15) {
+          speak('ritmo muito rápido', true);
+        }
+      }
+    }
+
+    // ----- MODO INTERVAL -----
+    function startIntervalMode() {
+      intervalState = 'work';
+      intervalStartTime = Date.now();
+      intervalCurrentRep = 1;
+      updateIntervalDisplay();
+      
+      intervalTimer_id = setInterval(() => {
+        const elapsed = (Date.now() - intervalStartTime) / 1000;
+        const duration = intervalState === 'work' ? intervalWorkDuration : intervalRestDuration;
+        const remaining = Math.max(0, duration - elapsed);
+        
+        intervalTime.textContent = formatTime(remaining);
+        
+        if (remaining <= 3 && remaining > 2) {
+          speak('três');
+        } else if (remaining <= 1 && remaining > 0) {
+          speak('um');
+        }
+        
+        if (remaining === 0) {
+          if (intervalState === 'work') {
+            intervalState = 'rest';
+            intervalStartTime = Date.now();
+            speak('descanso', true);
+            beep();
+            setTimeout(beep, 200);
+            updateIntervalDisplay();
+          } else {
+            intervalCurrentRep++;
+            if (intervalCurrentRep > intervalTotalReps) {
+              speak('treino intervalado finalizado', true);
+              stopInterval();
+              stopTraining();
+            } else {
+              intervalState = 'work';
+              intervalStartTime = Date.now();
+              speak(`repetição ${intervalCurrentRep}`, true);
+              beep();
+              beep();
+              beep();
+              updateIntervalDisplay();
+            }
+          }
+        }
+      }, 100);
+    }
+
+    function stopInterval() {
+      if (intervalTimer_id) {
+        clearInterval(intervalTimer_id);
+        intervalTimer_id = null;
+      }
+    }
+
+    function updateIntervalDisplay() {
+      intervalPhase.textContent = intervalState === 'work' ? 'TRABALHO' : 'DESCANSO';
+      intervalTime.className = `interval-time ${intervalState}`;
+      intervalCount.textContent = `Repetição ${intervalCurrentRep}/${intervalTotalReps}`;
+      
+      const remaining = intervalState === 'work' ? intervalWorkDuration : intervalRestDuration;
+      intervalTime.textContent = formatTime(remaining);
+    }
+
+    // ----- modos -----
+    function setMode(newMode) {
+      mode = newMode;
+      [modeFree, modeTarget, modeInterval].forEach(btn => btn.classList.remove('active'));
+      
+      targetZone.classList.remove('active');
+      intervalTimer.classList.remove('active');
+      
+      if (mode === 'free') {
+        modeFree.classList.add('active');
+        speak('modo livre');
+      } else if (mode === 'target') {
+        modeTarget.classList.add('active');
+        targetZone.classList.add('active');
+        targetPace = parseFloat(paceSlider.value);
+        speak('modo meta ativado');
+        showToast('Modo Meta: Mantenha seu pace alvo!');
+      } else if (mode === 'interval') {
+        modeInterval.classList.add('active');
+        intervalTimer.classList.add('active');
+        speak('modo intervalo');
+        showToast('Modo Intervalo: 2min trabalho + 1min descanso');
+      }
+    }
+
+    modeFree.addEventListener('click', () => setMode('free'));
+    modeTarget.addEventListener('click', () => setMode('target'));
+    modeInterval.addEventListener('click', () => setMode('interval'));
+
+    // ----- botão iniciar/parar -----
+    startBtn.addEventListener('click', async () => {
+      if (!running) {
+        running = true;
+        startBtn.textContent = '⏸️ Parar';
+        startBtn.classList.add('primary');
+        statusBadge.textContent = 'ATIVO';
+        statusBadge.classList.remove('inactive');
+
+        if (totalDist === 0) {
+          lastLapDist = 0;
+          lapCount = 0;
+          paceHistory = [];
+        }
+        
+        startTime = Date.now();
+        lastLapTime = Date.now();
+        lastPos = null;
+        
+        startMetronome();
+        startGPS();
+        await requestWakeLock();
+        
+        if (mode === 'interval') {
+          startIntervalMode();
+        }
+        
+        speak('treino iniciado', true);
+        showToast('Treino iniciado! Boa corrida! 🏃‍♂️');
+        
+      } else {
+        stopTraining();
+      }
+    });
+
+    function stopTraining() {
+      running = false;
+      startBtn.textContent = '▶️ Iniciar';
+      startBtn.classList.remove('primary');
+      statusBadge.textContent = 'PAUSADO';
+      statusBadge.classList.add('inactive');
+      
+      stopMetronome();
+      stopGPS();
+      stopInterval();
+      releaseWakeLock();
+      
+      speak('treino pausado');
+      showToast('Treino pausado');
+    }
+
+    // ----- botão lap -----
+    lapBtn.addEventListener('click', () => {
+      if (!running) {
+        showToast('Inicie o treino primeiro!', true);
+        speak('treino não iniciado');
+        return;
+      }
+      
+      lapCount++;
+      const lapDist = totalDist - lastLapDist;
+      const lapTime = Date.now() - lastLapTime;
+      lastLapDist = totalDist;
+      lastLapTime = Date.now();
+
+      let paceLap = 0;
+      let lapClass = '';
+      if (lapDist > 0.05 && lapTime > 0) {
+        const lapHours = lapTime / 3600000;
+        const lapSpeed = lapDist / lapHours;
+        paceLap = 60 / lapSpeed;
+        
+        const targetP = parseFloat(paceSlider.value);
+        if (paceLap < targetP - 0.15) {
+          lapClass = 'fast';
+        } else if (paceLap > targetP + 0.15) {
+          lapClass = 'slow';
+        }
+      }
+
+      const lapText = `${lapDist.toFixed(2)} km · ${formatPace(paceLap)}`;
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <span class="lap-number">Lap ${lapCount}</span>
+        <span class="lap-pace ${lapClass}">${lapText}</span>
+      `;
+      splitLog.prepend(div);
+      
+      speak(`lap ${lapCount}`);
+      showToast(`Lap ${lapCount}: ${formatPace(paceLap)}`);
+      
+      if (navigator.vibrate) {
+        navigator.vibrate([30, 50, 30]);
+      }
+    });
+
+    // ----- reset -----
+    resetBtn.addEventListener('click', () => {
+      if (running) {
+        const confirm = window.confirm('Treino em andamento. Deseja realmente resetar?');
+        if (!confirm) return;
+        stopTraining();
+      }
+      
+      totalDist = 0;
+      lastLapDist = 0;
+      lapCount = 0;
+      paceHistory = [];
+      distDisplay.textContent = '0.00 km';
+      gpsPaceDisplay.textContent = '--:--';
+      splitLog.innerHTML = '';
+      lastPos = null;
+      startTime = null;
+      lastLapTime = null;
+      
+      intervalCurrentRep = 1;
+      intervalState = 'work';
+      updateIntervalDisplay();
+      
+      speak('dados resetados');
+      showToast('Dados resetados');
+    });
+
+    // ----- inicialização -----
+    updateFromPace();
+
+    document.addEventListener('touchstart', () => {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true, passive: true });
+
+    window.addEventListener('beforeunload', () => {
+      if (running) {
+        stopGPS(); 
+        stopMetronome(); 
+        stopInterval();
+        releaseWakeLock();
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && running && !wakeLock) {
+        requestWakeLock();
+      }
+    });
+
+    setTimeout(() => {
+      showToast('PACE PRO carregado! Pronto para treinar? 💪');
+    }, 500);
+
+    // ===== PWA: Service Worker Registration =====
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+            
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showToast('Nova versão disponível! Recarregue a página.');
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            console.error('❌ Erro ao registrar Service Worker:', error);
+          });
+      });
+    }
+
+    // ===== PWA: Prompt de Instalação =====
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('💾 Prompt de instalação disponível');
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      setTimeout(() => {
+        showToast('📲 Instale o PACE PRO na tela inicial!');
+      }, 3000);
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ PWA instalado com sucesso!');
+      showToast('🎉 App instalado! Agora você pode usar offline!');
+      deferredPrompt = null;
+    });
+
+    // ===== PWA: Detectar modo standalone =====
+    const isStandalone = () => {
+      return (window.matchMedia('(display-mode: standalone)').matches) ||
+             (window.navigator.standalone) ||
+             document.referrer.includes('android-app://');
+    };
+
+    if (isStandalone()) {
+      console.log('📱 Rodando em modo standalone (PWA)');
+      document.body.classList.add('pwa-mode');
+    }
+
+    // ===== PWA: Detectar parâmetros de URL (atalhos) =====
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    if (modeParam && ['free', 'target', 'interval'].includes(modeParam)) {
+      setMode(modeParam);
+      showToast(`Modo ${modeParam} iniciado via atalho!`);
+    }
+
+  })();
+</script>
+</body>
+</html>
